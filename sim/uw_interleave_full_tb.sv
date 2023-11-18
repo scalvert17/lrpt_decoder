@@ -42,40 +42,6 @@ module uw_interleave_full_tb();
   logic [$clog2(MAX_CORR_VAL)-1:0] max_offset_weight;
   logic state_out;
 
-  // Debugging
-  logic [$clog2(NUM_FRAMES)-1:0] frame_ctr [3:0];
-  logic [$clog2(BITS_PER_FRAME)-1:0] offset_ctr [3:0];
-  logic [$clog2(BITS_PER_FRAME)-1:0] offset_read_addr [3:0];
-  logic [$clog2(MAX_CORR_VAL)-1:0] write_wgt [3:0];
-  logic [$clog2(MAX_CORR_VAL)-1:0] read_wgt_out [3:0];
-  logic wea_b [3:0];
-  logic [2:0] corr_count [3:0];
-  logic [$clog2(BITS_PER_FRAME)-1:0] offset_write_addr [3:0];
-  logic valid_out_rot_1;
-  logic [$clog2(BITS_PER_FRAME)-1:0] max_offset_ind_rot_1;
-  logic [$clog2(MAX_CORR_VAL)-1:0] offset_weight_max_rot_1;
-  logic [$clog2(NUM_FRAMES)-1] frame_ctr_1;
-  logic [$clog2(BITS_PER_FRAME)-1] offset_ctr_1;
-  logic [$clog2(BITS_PER_FRAME)-1] offset_read_addr_1;
-  logic [$clog2(MAX_CORR_VAL)-1] write_wgt_1;
-  logic [$clog2(MAX_CORR_VAL)-1] read_wgt_out_1;
-  logic wea_b_1;
-  logic [2:0] corr_count_1;
-  logic [$clog2(BITS_PER_FRAME)-1] offset_write_addr_1;
-
-  assign frame_ctr_1 = frame_ctr[0];
-  assign offset_ctr_1 = offset_ctr[0];
-  assign offset_read_addr_1 = offset_read_addr[0];
-  assign write_wgt_1 = write_wgt[0];
-  assign read_wgt_out_1 = read_wgt_out[0];
-  assign wea_b_1 = wea_b[0];
-  assign corr_count_1 = corr_count[0];
-  assign offset_write_addr_1 = offset_write_addr[0];
-
-
-
-
-
   uw_deinterleave #(
      .BITS_PER_FRAME(BITS_PER_FRAME),
      .NUM_FRAMES(NUM_FRAMES),
@@ -88,22 +54,8 @@ module uw_interleave_full_tb();
     .valid_out(valid_out),
     .ready_rx(ready_rx),
     .bit_offset(bit_offset),
-    .state_out(state_out),
     .max_offset_weight(max_offset_weight),
-    .rotation(rotation),
-    // Debugging
-    .frame_ctr(frame_ctr),
-    .offset_ctr(offset_ctr),
-    .offset_read_addr(offset_read_addr),
-    .offset_write_addr(offset_write_addr),
-    .write_wgt(write_wgt),
-    .read_wgt_out(read_wgt_out),
-    .wea_b(wea_b),
-    .corr_count(corr_count),
-    .valid_out_rot_1(valid_out_rot_1),
-    .max_offset_ind_rot_1(max_offset_ind_rot_1),
-    .offset_weight_max_rot_1(offset_weight_max_rot_1)
-
+    .rotation(rotation)
   );
 
   logic [BITS_PER_FRAME*NUM_FRAMES-1:0] frames;
@@ -115,22 +67,6 @@ module uw_interleave_full_tb();
     integer i, j;
     integer count;
     begin
-      // for (i = 0; i < num_frames; i = i + 1) begin
-      //   for (j = 0; j < BITS_PER_FRAME; j = j + 1) begin
-      //     case (j) 
-      //       0: frames[i*BITS_PER_FRAME + j] = sync_word[7];
-      //       1: frames[i*BITS_PER_FRAME + j] = sync_word[6];
-      //       2: frames[i*BITS_PER_FRAME + j] = sync_word[5];
-      //       3: frames[i*BITS_PER_FRAME + j] = sync_word[4];
-      //       4: frames[i*BITS_PER_FRAME + j] = sync_word[3];
-      //       5: frames[i*BITS_PER_FRAME + j] = sync_word[2];
-      //       6: frames[i*BITS_PER_FRAME + j] = sync_word[1];
-      //       7: frames[i*BITS_PER_FRAME + j] = sync_word[0];
-      //       default: frames[i*BITS_PER_FRAME + j] = $random;
-      //     endcase
-      //     // $display("frames[%d] = %b", i*BITS_PER_FRAME + j, frames[i*BITS_PER_FRAME + j]);
-      //   end
-      // end
       count = 0;
       for (j = 0; j < offset; j = j + 1) begin
         frames[j] = $random;
@@ -170,22 +106,11 @@ module uw_interleave_full_tb();
       #10;
       rst_in = 0;
       #10
-      
-    // valid_in = 1;
-    // hard_inp = 0;
-    // #10;
-    // valid_in = 1;
-    // hard_inp = 0;
-    // #10;
-    // valid_in = 1;
-    // hard_inp = 0;
-    // #10;
+    $display("Simulating rotation 0");
     for (int rot_num = 0; rot_num < 4; rot_num = rot_num + 1) begin;
 
       $display("Simulating rotation %d", rot_num);
       create_frames(SYNC_WORDS[rot_num*8 +: 8], NUM_FRAMES, 0);
- 
-      // create_frames_no_offset(8'h27, NUM_FRAMES);
 
       while (!ready_rx) begin
         $display("Waiting for ready_rx");
@@ -211,12 +136,13 @@ module uw_interleave_full_tb();
 
     // Testing offset
     rot_num_offset = 0;
+    $display("*****Testing all offsets*****");
     for (int offset_test = 0; offset_test < BITS_PER_FRAME; offset_test = offset_test + 1) begin;
       $display("Simulating rotation %d with offset: %d", rot_num_offset, offset_test);
       create_frames(SYNC_WORDS[rot_num_offset*8 +: 8], NUM_FRAMES, offset_test);
 
       while (!ready_rx) begin
-        $display("Waiting for ready_rx");
+        // $display("Waiting for ready_rx");
         #10;
       end
 
@@ -227,7 +153,6 @@ module uw_interleave_full_tb();
       end
       // Per module spec, we need to set valid_in to 0 once
       valid_in = 0;
-
       while (!valid_out) begin
         #10;
       end
