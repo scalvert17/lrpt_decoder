@@ -1,15 +1,14 @@
 `default_nettype none
 `timescale 1ns/1ps
 
-// TODO: Need to use the new module to find the offsets. Use a ready valid structure. Sadly each frame
-// reading will take more than 80 * 32 cycles. Just going to use AXI protocol 
-
 
 /*
-> Expects a contiunous stream of frame data 
 * This module recieves as input 8 bit soft I/Q data, performs correlation with a set of 
 * synchronization words and outputs frames of interleaved data. Each frame is 80 bits including the 
 * 8 bit UW. Every two bytes has an I 8-bit word, followed by an 8-bit Q word 
+* 
+* Expects valid_in to be high for BITS_PER_FRAME * NUM_FRAMES cycles. 
+* After these cycles valid_in should be asserted low until uw_deinterleave outputs ready_rx high
 */
 module uw_deinterleave #(
   parameter BITS_PER_FRAME = 80, // Hard decision
@@ -26,7 +25,21 @@ module uw_deinterleave #(
   output logic state_out,
   output logic [$clog2(BITS_PER_FRAME)-1:0] bit_offset,
   output logic [$clog2(MAX_CORR_VAL)-1:0] max_offset_weight,
-  output logic [3:0] rotation
+  output logic [3:0] rotation, 
+
+  // Debugging
+  output logic [$clog2(NUM_FRAMES)-1:0] frame_ctr [3:0],
+  output logic [$clog2(BITS_PER_FRAME)-1:0] offset_ctr [3:0],
+  output logic [$clog2(BITS_PER_FRAME)-1:0] offset_read_addr [3:0],
+  output logic [$clog2(BITS_PER_FRAME)-1:0] offset_write_addr [3:0],
+  output logic [$clog2(MAX_CORR_VAL)-1:0] write_wgt [3:0],
+  output logic [$clog2(MAX_CORR_VAL)-1:0] read_wgt_out [3:0],
+  output logic wea_b [3:0],
+  output logic [2:0] corr_count [3:0],
+  output logic hard_inp_int [3:0],
+  output logic valid_out_rot_1,
+  output logic [$clog2(BITS_PER_FRAME)-1:0] max_offset_ind_rot_1,
+  output logic [$clog2(MAX_CORR_VAL)-1:0] offset_weight_max_rot_1
 );
 
   // logic state_out;
@@ -45,6 +58,19 @@ module uw_deinterleave #(
 
   uw_sync_int_state state;
 
+  logic prev_valid_in;
+  logic prev_hard_inp;
+  logic prev_hard_inp1;
+  logic rst_in_alt;
+  logic valid_in_back;
+  logic valid_in_back_2;
+
+  always_ff @(posedge clk) begin
+    prev_hard_inp1 <= hard_inp;
+    prev_hard_inp <= prev_hard_inp1;
+    valid_in_back <= valid_in;
+  end
+
 
   always_ff @(posedge clk) begin
     if (rst_in) begin
@@ -59,11 +85,20 @@ module uw_deinterleave #(
     end else begin
       if (state == IDLE) begin
         ready_rx <= 1;
-        state <= READ;
+        prev_valid_in <= 0;
+        if (valid_in) begin
+          rst_in_alt <= 1;
+          state <= READ;
+        end else begin
+          rst_in_alt <= 1;
+        end
       end else if (state == READ) begin
         valid_out <= 0;
+        prev_valid_in <= 1;
+        rst_in_alt <= 0;
         if (rotations[0].valid_out) begin // Check if the correlators are done
           ready_rx <= 0;
+          prev_valid_in <= 0;
           state <= COMPUTE;
           // Getting errors in with icarus. Manual unroll
           // for (int i = 0; i < 4; i = i + 1) begin
@@ -127,20 +162,50 @@ module uw_deinterleave #(
         .SYNC_WORD(SYNC_WORDS[i*8 +: 8]))
       uw_sync_rotate (
         .clk(clk),
-        .rst_in(rst_in),
-        .hard_inp(hard_inp),
-        .valid_in(valid_in && (state == READ) ),
+        .rst_in(rst_in || rst_in_alt),
+        .hard_inp(prev_hard_inp),
+        .valid_in((valid_in || valid_in_back) && (state == READ) && prev_valid_in ),
         .valid_out(valid_out),
         .bit_offset(max_offset_ind),
-        .max_offset_weight(offset_weight_max)
+        .max_offset_weight(offset_weight_max),
+
+        .frame_ctr(frame_ctr[i]),
+        .offset_ctr(offset_ctr[i]),
+        .offset_read_addr(offset_read_addr[i]),
+        .offset_write_addr(offset_write_addr[i]),
+        .write_wgt(write_wgt[i]),
+        .read_wgt_out(read_wgt_out[i]),
+        .wea_b(wea_b[i]),
+        .corr_count(corr_count[i])
       );
     end
   endgenerate
+
+  // logic valid_out_rot_1;
+  // logic [$clog2(BITS_PER_FRAME)-1:0] max_offset_ind_rot_1;
+  // logic [$clog2(MAX_CORR_VAL)-1:0] offset_weight_max_rot_1;
+
+  // logic [$clog2(NUM_FRAMES)-1:0] frame_ctr [3:0];
+  // logic [$clog2(BITS_PER_FRAME)-1:0] offset_ctr [3:0];
+  // logic [$clog2(BITS_PER_FRAME)-1:0] offset_read_addr [3:0];
+  // logic [$clog2(MAX_CORR_VAL)-1:0] write_wgt [3:0];
+  // logic [$clog2(MAX_CORR_VAL)-1:0] read_wgt_out [3:0];
+  // logic wea_b [3:0];
+  // logic [2:0] corr_count [3:0];
+  // logic [$clog2(BITS_PER_FRAME)-1:0] offset_write_addr [3:0];
+  // logic hard_inp_int [3:0];
+  // logic prev_valid_in [3:0];
+
+  assign valid_out_rot_1 = rotations[0].valid_out;
+  assign max_offset_ind_rot_1 = rotations[0].max_offset_ind;
+  assign offset_weight_max_rot_1 = rotations[0].offset_weight_max;
+  
 endmodule 
 
 /*
-* correlator expects 80 * 32 input bits. Once all 32 frames have been read, it calculates and output
-* the offset with the highest correlation value, so that this offset is available on the next cycle
+* Once valid_in is high, the correlator expects 80 * 32 input bits. Once all 32 frames have been 
+* read, it calculates and output the offset with the highest correlation value, so that this offset
+*d is available on the next cycle. 
 */
 module uw_sync_derotate_int #(
   parameter BITS_PER_FRAME = 80, // Hard decision
@@ -153,22 +218,25 @@ module uw_sync_derotate_int #(
   input wire hard_inp,
   input wire valid_in, 
 
-  // Debugging 
 
   output logic valid_out, 
   output logic [$clog2(BITS_PER_FRAME)-1:0] bit_offset,
-  output logic [$clog2(MAX_CORR_VAL)-1:0] max_offset_weight
+  output logic [$clog2(MAX_CORR_VAL)-1:0] max_offset_weight,
+
+  // Debugging 
+  
+  output logic [$clog2(NUM_FRAMES)-1:0] frame_ctr,
+  output logic [$clog2(BITS_PER_FRAME)-1:0] offset_ctr,
+  output logic [$clog2(BITS_PER_FRAME)-1:0] offset_read_addr,
+  output logic [$clog2(MAX_CORR_VAL)-1:0] write_wgt,
+  output logic [$clog2(MAX_CORR_VAL)-1:0] read_wgt_out,
+  output logic wea_b,
+  output logic [2:0] corr_count,
+  output logic [$clog2(BITS_PER_FRAME)-1:0] offset_write_addr
 
 );
 
-  logic [$clog2(NUM_FRAMES)-1:0] frame_ctr;
-  logic [$clog2(BITS_PER_FRAME)-1:0] offset_ctr;
-  logic [$clog2(BITS_PER_FRAME)-1:0] offset_read_addr;
-  logic [$clog2(MAX_CORR_VAL)-1:0] write_wgt;
-  logic [$clog2(MAX_CORR_VAL)-1:0] read_wgt_out;
-  logic wea_b;
-  logic [2:0] corr_count;
-  logic [$clog2(BITS_PER_FRAME)-1:0] offset_write_addr;
+
   logic hard_inp_int;
 
   typedef enum  {
@@ -215,7 +283,7 @@ module uw_sync_derotate_int #(
           state <= READ;
           correlators[0].valid_in_corr <= 1;
         end
-      end else if (state == READ && (valid_in || prev_valid_in)) begin
+      end else if (state == READ) begin
         // state <= (valid_in) ? READ : IDLE;
         // Proceed 
         offset_ctr <= (offset_ctr == BITS_PER_FRAME - 1) ? 0 : offset_ctr + 1;
@@ -253,7 +321,7 @@ module uw_sync_derotate_int #(
             3'd6: correlators[6].valid_in_corr <= 0;
             3'd7: begin 
               write_wgt <= 0;
-              correlators[0].valid_in_corr <= 1;
+              // correlators[0].valid_in_corr <= 1;
               correlators[7].valid_in_corr <= 0;
               state <= IDLE;
             end
