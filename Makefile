@@ -23,7 +23,15 @@ uw_sync_full:
 		hdl/xilinx_true_dual_port_read_first_2_clock_ram.v 
 	vvp vcd/sync_full.out
 
+.PHONY: bmu
+bmu:
+	iverilog -g2012 -o vcd/bmu.out sim/bmu_tb.sv hdl/bmu.sv
+	vvp vcd/bmu.out
 	
+.PHONY: viterbi
+viterbi:
+	iverilog -g2012 -o vcd/viterbi.out sim/viterbi_tb.sv hdl/viterbi.sv hdl/acs_but.sv hdl/bmu.sv
+	vvp vcd/viterbi.out
 
 # .PHONY: uw_sync_deint
 # uw_sync_deint:
