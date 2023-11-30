@@ -30,8 +30,15 @@ bmu:
 	
 .PHONY: viterbi
 viterbi:
-	iverilog -g2012 -o vcd/viterbi.out sim/viterbi_tb.sv hdl/viterbi.sv hdl/acs_but.sv hdl/bmu.sv
+	iverilog -g2012 -o vcd/viterbi.out sim/viterbi_tb.sv hdl/viterbi.sv hdl/acs_but.sv hdl/bmu.sv \
+		hdl/tbu.sv hdl/xilinx_true_dual_port_read_first_2_clock_ram.v
 	vvp vcd/viterbi.out
+
+.PHONY: tbu
+tbu:
+	iverilog -g2012 -o vcd/tbu.out sim/tbu_tb.sv hdl/tbu.sv \
+		hdl/xilinx_true_dual_port_read_first_2_clock_ram.v
+	vvp vcd/tbu.out
 
 # .PHONY: uw_sync_deint
 # uw_sync_deint:

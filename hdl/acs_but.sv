@@ -46,6 +46,8 @@ module acs_butterfly #(
         prev_state <= STATE_1;
       end
       desc <= TRANSITION_BIT;
+    end else begin
+      valid_out <= 0;
     end
   end
 

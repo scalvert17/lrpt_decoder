@@ -184,6 +184,16 @@ module viterbi (
     end
   end
 
+tbu tbu_inst (
+  .clk(clk),
+  .sys_rst(sys_rst),
+  .prev_state(prev_state),
+  .desc(desc),
+  .valid_in(valid_out[0]),
+  .vit_desc(vit_desc),
+  .valid_out(valid_out_vit)
+);
+
 
 //TODO: Does this work?
 // genvar i;
