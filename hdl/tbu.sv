@@ -2,7 +2,7 @@
 `default_nettype none
 
 /*
-* 
+*  //TODO: When in not valid should keep reading if in read or traceback mode
 */
 // TODO: We need to use K = 2 now to avoid the issue with multi driven nets as different read ptrs may try accesing the 
 // same bram on the same cycle. So gonna have to either generate two setns of BRAMS.  HUHU
@@ -503,7 +503,10 @@ module read_ptr #(
             state <= TRACEBACK;
             col_ind <= (col_ind + 1) % S;
             row_ind <= (holding_dout) ? dout_store[5:0] : dout[0][5:0]; // Prev_state of 0th row
-            addr[0] <= (col_ind + 1) % S; // Reading ahead so that prev val and decs are available on the next run;
+            for (int i = 0; i < 16; i = i + 1) begin
+              addr[i] <= (col_ind + 1) % S;
+            end
+            // addr[0] <= (col_ind + 1) % S; // Reading ahead so that prev val and decs are available on the next run;
           end else begin
             for (int i = 0; i < 16; i = i + 1) begin
               addr[i] <= col_ind;

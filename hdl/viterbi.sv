@@ -66,10 +66,10 @@ module viterbi (
           // TODO:Check that flipping the MSB is what we want to do 
           // Might be the other direction. I seemed to think that -1 = 0 and 1 = 1
           input_i <= {~soft_inp[7], soft_inp[6:0]};
-          valid_in <= 0;
+          valid_in <= 1; // TODO: This should not be a non blocking assignment 
         end else begin
           i_q_counter <= 0;
-          valid_in <= 1;
+          valid_in <= 0;
         end
       end
     end
