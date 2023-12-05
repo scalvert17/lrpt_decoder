@@ -23,6 +23,12 @@ uw_sync_full:
 		hdl/xilinx_true_dual_port_read_first_2_clock_ram.v 
 	vvp vcd/sync_full.out
 
+.PHONY: uw_cadu
+uw_cadu: 
+	iverilog -g2012 -o vcd/uw_cadu.out sim/uw_cadu_tb.sv hdl/uw_cadu.sv hdl/uw_deinterleave.sv \
+		hdl/xilinx_true_dual_port_read_first_2_clock_ram.v 
+	vvp vcd/uw_cadu.out
+
 .PHONY: bmu
 bmu:
 	iverilog -g2012 -o vcd/bmu.out sim/bmu_tb.sv hdl/bmu.sv

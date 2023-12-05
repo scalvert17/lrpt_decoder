@@ -349,7 +349,7 @@ endmodule
 * with sum from new_input weight
 */
 module correlator #(
-  parameter logic [7:0] SYNC_WORD = 8'h27,
+  parameter logic [SIZE_OF_CONV-1:0] SYNC_WORD = 8'h27,
   parameter MAX_CORR_VAL = (8 * 32) + 1,
   parameter SIZE_OF_CONV = 8
 )(
@@ -363,7 +363,7 @@ module correlator #(
   output logic [$clog2(MAX_CORR_VAL)-1:0] new_weight // Output of past_weight and correlation
 );
 
-  logic [2:0] counter;
+  logic [$clog2(SIZE_OF_CONV)-1:0] counter;
 
   always_ff @(posedge clk) begin
     if (sys_rst) begin
@@ -373,8 +373,8 @@ module correlator #(
     end else if (valid_in) begin
       new_weight <= ((counter == 0) ? past_weight : new_weight) 
                                       + $unsigned(SYNC_WORD[SIZE_OF_CONV-counter-1] ~^ inp_bit);
-      valid_out <= (counter == 7) ? 1 : 0;
-      counter <= counter + 1;
+      valid_out <= (counter == SIZE_OF_CONV - 1) ? 1 : 0;
+      counter <= (counter == SIZE_OF_CONV - 1) ? 0 : counter + 1;
 
     end else begin
       counter <= 0;
