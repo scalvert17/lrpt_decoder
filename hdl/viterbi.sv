@@ -2,8 +2,6 @@
 `default_nettype none
 
 /*
-* Expects as input I/Q data in offset binary. That is 0xFF is the strongest 1 representation and 
-* 0x00 is the strongest 0 representation 
 */
 module viterbi (
   input wire clk,
@@ -11,13 +9,41 @@ module viterbi (
   input wire signed [7:0] soft_inp,
   input wire valid_in_vit,
 
+  /**************************/
+  // Testing ports for ACS input to TBU
+  output logic  [5:0] prev_state_TBU_deb [63:0],
+  output logic desc_TBU_deb [63:0],
+  output logic valid_in_TBU_deb,
+  output logic [19:0] sm_TBU_deb [63:0],
+  output logic [19:0] met_out_TBU_deb [3:0],
+  /**************************/
+
   output logic vit_desc,
   output logic ready_in,
   output logic normalization,
   output logic [19:0] sm_0_debug,
   output logic  valid_out_vit
+
+  
   
 );
+  /********************/
+  // TBU test and debug
+  /* assign prev_state_TBU_deb = { << { prev_state }}; */
+  /* assign desc_TBU_deb = { << {desc}}; */
+  assign prev_state_TBU_deb = prev_state;
+  assign desc_TBU_deb = desc;
+  assign valid_in_TBU_deb = valid_out[0];
+  assign sm_TBU_deb = sm;
+  assign met_out_TBU_deb = met_out;
+  /* always_comb begin */
+  /*   for (int i = 0; i < 64; i = i + 1) begin */
+  /*     prev_state_TBU_deb[i] = prev_state[i]; */
+  /*     desc_TBU_deb[i] = desc[i]; */
+  /*   end */
+  /* end */
+  /********************/
+
   assign sm_0_debug = sm[0];
   localparam K = 7; // Constraint length
   localparam INV_R = 2; // 2x bits on output as input on encoder (r = 1/2)
@@ -66,7 +92,7 @@ module viterbi (
           // TODO:Check that flipping the MSB is what we want to do 
           // Might be the other direction. I seemed to think that -1 = 0 and 1 = 1
           input_i <= {~soft_inp[7], soft_inp[6:0]};
-          valid_in <= 1; // TODO: This should not be a non blocking assignment 
+          valid_in <= 1; 
         end else begin
           i_q_counter <= 0;
           valid_in <= 0;
@@ -218,6 +244,10 @@ tbu tbu_inst (
 //     );
 //   end
 // endgenerate
+//
+   // TODO: Need to check that the order of the bm's is correct 
+//
+
 
   acs_butterfly #(
     .TRANSITION_BIT(0),

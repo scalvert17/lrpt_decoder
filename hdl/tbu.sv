@@ -327,11 +327,30 @@ module tbu (
   endgenerate
 
   //
+  //
+  logic filo_buff_vit_desc [B-1:0];
+  logic [$clog2(B)-1:0] filo_ind_r;
+  logic [$clog2(B)-1:0] filo_ind_w;
+  logic seen_desc_out_1;
+  logic r_dir; // 0 for decreasing, 1 increasing index
+  logic w_dir;
+  logic w_start;
+  logic r_start;
+
   always_ff @(posedge clk) begin
     if (sys_rst) begin 
       valid_out <= 0;
       addr_w <= 0;
       wea <= 0;
+
+      // 
+      filo_ind_r <= B - 1;
+      filo_ind_w <= 0;
+      seen_desc_out_1 <= 0;
+      w_dir <= 1;
+      r_dir <= 0;
+      w_start <= 0;
+      r_start <= 0;
  
       // for (int i = 0; i < NUM_STATES / 4; i = i + 1) begin
       //   addr_0_r[i] <= 0;
@@ -354,15 +373,49 @@ module tbu (
         wea <= 0;
       end
       // Set the output 
-      if (val_out_r_0) begin
-        valid_out <= 1;
-        vit_desc <= desc_out_0;
-      end else if (val_out_r_1) begin
-        valid_out <= 1;
-        vit_desc <= desc_out_1;
+      if (val_out_r_0 || val_out_r_1) begin
+        if (seen_desc_out_1) begin
+          vit_desc <= filo_buff_vit_desc[filo_ind_r];
+          valid_out <= 1;
+        end else begin
+          valid_out <= 0;
+        end
+
+        filo_buff_vit_desc[filo_ind_w] <= (val_out_r_0) ? desc_out_0 : desc_out_1;
+        if (filo_ind_w == B - 1 && w_start) begin
+          w_start <= 0;
+          w_dir <= 0;
+          seen_desc_out_1 <= 1;
+        end else if (filo_ind_w == 0 && w_start) begin
+          w_start <= 0;
+          w_dir <= 1;
+        end else begin
+          w_start <= 1;
+          filo_ind_w <= (w_dir) ? filo_ind_w + 1 : filo_ind_w - 1;
+        end
+
+        if (filo_ind_r == B - 1 && r_start) begin
+          r_dir <= 0;
+          r_start <= 0;
+        end else if (filo_ind_r == 0 && r_start) begin
+          r_dir <= 1;
+          r_start <= 0;
+        end else if (seen_desc_out_1) begin
+          r_start <= 1;
+          filo_ind_r <= (r_dir) ? filo_ind_r + 1 : filo_ind_r - 1;
+        end
       end else begin
         valid_out <= 0;
       end
+      /* if (val_out_r_0) begin */
+      /*   valid_out <= 1; */
+      /*   vit_desc <= desc_out_0; */
+      /* end else if (val_out_r_1) begin */
+      /*   valid_out <= 1; */
+      /*   vit_desc <= desc_out_1; */
+      /* end else begin */
+      /*   valid_out <= 0; */
+      /* end */
     end
   end
 endmodule

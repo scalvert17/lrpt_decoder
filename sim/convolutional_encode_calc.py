@@ -22,17 +22,19 @@ def display_output(bit_len, output):
 state = 0b000000
 inps = []
 output = []
-for _ in range(1000): 
+states = []
+steps = 200
+for _ in range(steps): 
     inp = random.choice([0b1, 0b0])
     inps.append(inp)
     output.extend(conv_calc(state, inp))
     state = (state >> 1) | (inp << 5)
-    print(state)
+    states.append(state)
 print(inps)
 print(output)
 
 
-print(display_output(2000*8, output))
+print(display_output(8*2*steps, output))
 
 
 

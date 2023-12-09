@@ -41,15 +41,16 @@ module acs_butterfly #(
       if (pm_0 <= pm_1) begin
         sm_out <= pm_0;
         prev_state <= STATE_0;
-        desc <= 0;
+
+        /* desc <= 0; */
       end else begin
         sm_out <= pm_1;
         prev_state <= STATE_1;
-        desc <= 1;
+        /* desc <= 1; */
       end
       // TODO: Should the output bit be the input? Starting to think that it should be. The
       // conv encoder should be 0 init, so really the input bits are what matters
-      // desc <= TRANSITION_BIT;
+      desc <= TRANSITION_BIT;
     end else begin
       valid_out <= 0;
     end
