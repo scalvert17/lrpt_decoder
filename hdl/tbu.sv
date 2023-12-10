@@ -1,6 +1,10 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
+// Confident that sm is correct into tbu.
+// Pretty confident that prev state is also correct
+// col_ind zero 2 cycles before readback counter done 
+
 /*
 *  //TODO: When in not valid should keep reading if in read or traceback mode
 */
@@ -224,6 +228,7 @@ module tbu (
     .dout_14(dout_0_14),
     .dout_15(dout_0_15),
     .desc_out(desc_out_0),
+    .prev_state_0(prev_state_0),
     .valid_out(val_out_r_0)
   );
 
@@ -268,6 +273,7 @@ module tbu (
     .dout_13(dout_1_13),
     .dout_14(dout_1_14),
     .dout_15(dout_1_15),
+    .prev_state_0(prev_state_0),
 
     .desc_out(desc_out_1),
     .valid_out(val_out_r_1)
@@ -329,6 +335,23 @@ module tbu (
   //
   //
   logic filo_buff_vit_desc [B-1:0];
+
+  logic vit_desc_0;
+  logic vit_desc_1;
+  logic vit_desc_2;
+  logic vit_desc_26;
+  logic vit_desc_27;
+  logic vit_desc_28;
+  logic vit_desc_29;
+  assign vit_desc_0 = filo_buff_vit_desc[0];
+  assign vit_desc_1 = filo_buff_vit_desc[1];
+  assign vit_desc_2 = filo_buff_vit_desc[2];
+
+  assign vit_desc_26 = filo_buff_vit_desc[26];
+  assign vit_desc_27 = filo_buff_vit_desc[27];
+  assign vit_desc_28 = filo_buff_vit_desc[28];
+  assign vit_desc_29 = filo_buff_vit_desc[29];
+
   logic [$clog2(B)-1:0] filo_ind_r;
   logic [$clog2(B)-1:0] filo_ind_w;
   logic seen_desc_out_1;
@@ -448,6 +471,7 @@ module read_ptr #(
   input wire [35:0] dout_13,
   input wire [35:0] dout_14,
   input wire [35:0] dout_15,
+  input wire [5:0] prev_state_0,
   output logic desc_out,
   output logic valid_out,
   // output logic [$clog2(S)-1:0] addr [15:0]
@@ -554,8 +578,10 @@ module read_ptr #(
           valid_out <= 0;
           if (col_ind == write_index) begin
             state <= TRACEBACK;
+            traceback_ctr <= 0;
             col_ind <= (col_ind + 1) % S;
-            row_ind <= (holding_dout) ? dout_store[5:0] : dout[0][5:0]; // Prev_state of 0th row
+            /* row_ind <= (holding_dout) ? dout_store[5:0] : dout[0][5:0]; // Prev_state of 0th row */
+            row_ind <= prev_state_0;
             for (int i = 0; i < 16; i = i + 1) begin
               addr[i] <= (col_ind + 1) % S;
             end
@@ -592,7 +618,7 @@ module read_ptr #(
           //     3: row_ind <= (dout[row_ind>>2][27:21])[5:0];
           //   endcase
           // end
-          addr[row_ind>>2] <= (col_ind + 1) % S;
+          /* addr[row_ind>>2] <= (col_ind + 1) % S; */
         end
         READ: begin
           valid_out <= 1;
@@ -603,11 +629,15 @@ module read_ptr #(
             readback_ctr <= readback_ctr + 1;
           end
           col_ind <= (col_ind + 1) % S;
-          addr[row_ind>>2] <= (col_ind + 1) % S;
+          /* addr[row_ind>>2] <= (col_ind + 1) % S; */
         end
       endcase
 
       if (state != IDLE) begin
+        for (int i = 0; i < 16; i = i + 1) begin 
+          addr[i] <= (col_ind + 1) % S;
+        end
+
         if (holding_dout) begin
           desc_out <= dout_store[6];
           row_ind <= dout_store[5:0];

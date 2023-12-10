@@ -74,10 +74,11 @@ module viterbi_tb;
   bit [5:0] state;
   bit inp_bit;
   bit [1:0] out_seen; // {q, i}
+  //
 
+  logic input_bits [139:0];
+  int inp_seed = 10;
 
-  
-  
 
   initial begin
     $dumpfile("vcd/vit.vcd"); //file to store value change dump (vcd)
@@ -85,20 +86,26 @@ module viterbi_tb;
     $display("Starting Sim"); //print nice message at start
     clk = 0;
     state = 0;
-    inp_bit = 1;
+    inp_bit = 0;
 
     sys_rst = 1;
     valid_in_vit = 0;
     #10 
     sys_rst = 0;
     valid_in_vit = 1;
+
+    
     for (int i = 0; i < 140; i++) begin
+      inp_bit = $random(inp_seed);
+      $display("count: %d", i);
+      $display("Input bit: %d", inp_bit);
       out_seen = conv_calc(state, inp_bit);
       soft_inp = (out_seen[0]) ? 8'h7F : 8'h80;
       #10;
       soft_inp = (out_seen[1]) ? 8'h7F : 8'h80;
       state = (state >> 1) | (inp_bit << 5);
-      inp_bit = ~inp_bit;
+      $display("State: %d", state);
+      /* inp_bit = ~inp_bit; */
       #10;
     end
     #1000;
