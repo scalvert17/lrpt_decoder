@@ -570,6 +570,7 @@ module read_ptr #(
       // for (int i = 0; i < 16; i = i + 1) begin
       //   addr[i] <= 0;
       // end
+      
     end else if (valid_in) begin
       holding_dout <= 0;
       exp_bram_read <= 1;
@@ -581,7 +582,7 @@ module read_ptr #(
             traceback_ctr <= 0;
             col_ind <= (col_ind + 1) % S;
             /* row_ind <= (holding_dout) ? dout_store[5:0] : dout[0][5:0]; // Prev_state of 0th row */
-            row_ind <= prev_state_0;
+            row_ind <= (holding_dout) ? dout_store[5:0] : prev_state_0;
             for (int i = 0; i < 16; i = i + 1) begin
               addr[i] <= (col_ind + 1) % S;
             end
@@ -663,9 +664,9 @@ module read_ptr #(
         end
       end
 
-    end else begin
+    end else if (state != IDLE) begin
       valid_out <= 0;
-      if (!exp_bram_read) begin
+      if (exp_bram_read && !holding_dout) begin
         holding_dout <= 1;
         case (row_ind[1:0])
           0: dout_store <= dout[row_ind>>2][6:0];
@@ -675,6 +676,8 @@ module read_ptr #(
         endcase 
         // dout_store <= dout[row_ind >> 2][7 * row_ind[1:0] :+ 7]; 
       end else exp_bram_read <= exp_bram_read - 1;
+    end else begin
+      valid_out <= 0;
     end
 
   end

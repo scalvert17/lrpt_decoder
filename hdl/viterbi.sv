@@ -23,9 +23,6 @@ module viterbi (
   output logic normalization,
   output logic [19:0] sm_0_debug,
   output logic  valid_out_vit
-
-  
-  
 );
   /********************/
   // TBU test and debug
