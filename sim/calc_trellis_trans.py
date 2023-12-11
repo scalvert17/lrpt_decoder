@@ -6,6 +6,7 @@ def count_ones(n):
   return bin(n).count('1') % 2
 
 
+# TODO: there might be an issue here with g
 def conv_calc(state, in_bit):
   # returns the output (i, q) for the given input state
   g1 = ((in_bit << 6) | state) & 0b1111001
@@ -13,6 +14,7 @@ def conv_calc(state, in_bit):
   return (count_ones(g1),  count_ones(g2))
 
 def acs_mod_sig(state_num, conv_calc_0, conv_calc_1, tran_bit, old_state_0, old_state_1):
+  # BMU i is more significant
   return f"""acs_butterfly #(
     .TRANSITION_BIT({tran_bit}),
     .STATE_0(6'd{old_state_0}),

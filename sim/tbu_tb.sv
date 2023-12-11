@@ -36,6 +36,12 @@ module tbu_tb;
     #5 clk = ~clk;
   end
 
+  // TODO: Test AcS input to the tbu. This should provide a good baseline, as well as generate 
+  // some tests for the tbu. 
+
+  
+  
+
   initial begin
     $dumpfile("vcd/tbu.vcd"); //file to store value change dump (vcd)
     $dumpvars(0,tbu_tb); //dump all variables in this module

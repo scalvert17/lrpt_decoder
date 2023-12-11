@@ -13,9 +13,9 @@ def display_output(bit_len, output):
     out = ""
     for o in output:
         if o:
-            out = f"7F" + out
+            out += f"7F"
         else:
-            out = f"80"  + out
+            out += f"80"
     out = f"{bit_len}'h" + out
     return out
 
@@ -23,7 +23,7 @@ state = 0b000000
 inps = []
 output = []
 states = []
-steps = 200
+steps = 140
 for _ in range(steps): 
     inp = random.choice([0b1, 0b0])
     inps.append(inp)

@@ -80,6 +80,7 @@ module viterbi_tb;
   int inp_seed = 10;
 
 
+
   initial begin
     $dumpfile("vcd/vit.vcd"); //file to store value change dump (vcd)
     $dumpvars(0,viterbi_tb); //dump all variables in this module
@@ -96,7 +97,7 @@ module viterbi_tb;
 
     
     for (int i = 0; i < 140; i++) begin
-      inp_bit = $random(inp_seed);
+      /* inp_bit = $random(inp_seed); */
       $display("count: %d", i);
       $display("Input bit: %d", inp_bit);
       out_seen = conv_calc(state, inp_bit);
@@ -105,7 +106,7 @@ module viterbi_tb;
       soft_inp = (out_seen[1]) ? 8'h7F : 8'h80;
       state = (state >> 1) | (inp_bit << 5);
       $display("State: %d", state);
-      /* inp_bit = ~inp_bit; */
+      inp_bit = ~inp_bit;
       #10;
     end
     #1000;

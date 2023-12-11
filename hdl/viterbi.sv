@@ -26,19 +26,11 @@ module viterbi (
 );
   /********************/
   // TBU test and debug
-  /* assign prev_state_TBU_deb = { << { prev_state }}; */
-  /* assign desc_TBU_deb = { << {desc}}; */
   assign prev_state_TBU_deb = prev_state;
   assign desc_TBU_deb = desc;
   assign valid_in_TBU_deb = valid_out[0];
   assign sm_TBU_deb = sm;
   assign met_out_TBU_deb = met_out;
-  /* always_comb begin */
-  /*   for (int i = 0; i < 64; i = i + 1) begin */
-  /*     prev_state_TBU_deb[i] = prev_state[i]; */
-  /*     desc_TBU_deb[i] = desc[i]; */
-  /*   end */
-  /* end */
   /********************/
 
   assign sm_0_debug = sm[0];
@@ -68,10 +60,6 @@ module viterbi (
   logic signed [STATE_MET_WIDTH:0] sub_res [NUM_STATES-1:0];
   logic i_q_counter;
   logic valid_in; // For acs
-  // Was for fligging msb of inp
-  // logic first_inp;
-
-  // initial first_inp = 1;
 
   assign input_q = {~soft_inp[7], soft_inp[6:0]};
 
@@ -81,7 +69,6 @@ module viterbi (
       ready_in <= 0;
       valid_in <= 0;
       i_q_counter <= 0;
-      // first_inp <= 1;
     end else begin
       if (valid_in_vit) begin
         if (!i_q_counter) begin
@@ -98,62 +85,20 @@ module viterbi (
     end
   end
 
-  // Debugging
-  // logic temp;
-  // always_ff @(posedge clk) begin
-  //   if (sys_rst) begin
-  //     sm_out_deb <= 0;
-  //   end else if (valid_in_vit) begin
-  //     temp = 0;
-  //     for (int i = 0; i < NUM_STATES; i = i + 1) begin
-  //       temp = sm[i] ^ temp;
-  //     end
-  //     sm_out_deb <= temp;
-  //   end
-  // end
-
-
-  // TODO: Generate these modules
-  bmu #(
-    .EXP_OBS_OUT(2'b00)
-  ) bmu_00 (
-    .clk(clk),
-    .sys_rst(sys_rst),
-    .input_i(input_i),
-    .input_q(input_q),
-    .met_out(met_out[0])
-  );
-
-  bmu #(
-    .EXP_OBS_OUT(2'b01)
-  ) bmu_01 (
-    .clk(clk),
-    .sys_rst(sys_rst),
-    .input_i(input_i),
-    .input_q(input_q),
-    .met_out(met_out[1])
-  );
-
-  bmu #(
-    .EXP_OBS_OUT(2'b10)
-  ) bmu_10 (
-    .clk(clk),
-    .sys_rst(sys_rst),
-    .input_i(input_i),
-    .input_q(input_q),
-    .met_out(met_out[2])
-  );
-
-  bmu #(
-    .EXP_OBS_OUT(2'b11)
-  ) bmu_11 (
-    .clk(clk),
-    .sys_rst(sys_rst),
-    .input_i(input_i),
-    .input_q(input_q),
-    .met_out(met_out[3])
-  );
-
+  generate
+    genvar j;
+    for (j = 0; j < 4; j++) begin : bmu_inst
+      bmu #(
+        .EXP_OBS_OUT(j)
+      ) bmu_j (
+        .clk(clk),
+        .sys_rst(sys_rst),
+        .input_i(input_i),
+        .input_q(input_q),
+        .met_out(met_out[j])
+      );
+    end
+  endgenerate
 
 
   always_comb begin 
@@ -169,23 +114,12 @@ module viterbi (
     end
   end
 
-  // initial begin
-  //   prev_state[i] <= 0;
-  //   desc[i] <= 0;
-  //   sm[i] <= 0;
-  // end
-
-  // TODO: Add a valid input signal to the normalizer
-  // TODO: Add a signal to tell when normalizing 
   genvar i;
   generate
     for (i = 0; i < NUM_STATES; i = i + 1) begin
       always_ff @(posedge clk) begin
         if (sys_rst) begin
           sm_normal[i] <= 0;
-          // prev_state[i] <= 0;
-          // desc[i] <= 0;
-          // sm[i] <= 0;
         end else begin
           if (flag) begin
             sm_normal[i] <= sub_res[i];
@@ -218,34 +152,7 @@ tbu tbu_inst (
 );
 
 
-//TODO: Does this work?
-// genvar i;
-// generate
-//   for (i = 0; i < 32; i=i+2) begin : acs_gen
-//     acs_butterfly #(
-//       .TRANSITION_BIT(0),
-//       .STATE_0(6'di),
-//       .STATE_1(6'd(i+1))
-//     ) acs_inst (
-//       .clk(clk),
-//       .sys_rst(sys_rst),
-//       .bm_0(met_out[i/2]),
-//       .bm_1(met_out[(i/2)+1]),
-//       .sm_0(sm_normal[i]),
-//       .sm_1(sm_normal[i+1]),
-//       .valid_in(valid_in),
-//       .desc(desc[i/2]),
-//       .valid_out(valid_out[i/2]),
-//       .sm_out(sm[i/2]),
-//       .prev_state(prev_state[i/2])
-//     );
-//   end
-// endgenerate
-//
-   // TODO: Need to check that the order of the bm's is correct 
-//
-
-
+// TODO: generota these modules
   acs_butterfly #(
     .TRANSITION_BIT(0),
     .STATE_0(6'd0),

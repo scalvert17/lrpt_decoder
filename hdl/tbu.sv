@@ -1,15 +1,6 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-// Confident that sm is correct into tbu.
-// Pretty confident that prev state is also correct
-// col_ind zero 2 cycles before readback counter done 
-
-/*
-*  //TODO: When in not valid should keep reading if in read or traceback mode
-*/
-// TODO: We need to use K = 2 now to avoid the issue with multi driven nets as different read ptrs may try accesing the 
-// same bram on the same cycle. So gonna have to either generate two setns of BRAMS.  HUHU
 module tbu (
   input wire clk,
   input wire sys_rst,
@@ -41,15 +32,15 @@ module tbu (
   logic val_out_r_1;
 
 
-  logic [$clog2(S)-1:0] addr_w; // [15:0];
+  logic [$clog2(S)-1:0] addr_w; 
   logic [35:0] din_w [15:0];
-  logic wea ;//[15:0];
+  logic wea; 
 
-  // TODO: Please fix this 
-  // Probabaly just helps iverilog
   logic [5:0] prev_state_0;
   assign prev_state_0 = prev_state[0];
 
+  // TODO: Please fix this. Iverilog throwrowing out undefined values when passing unpacked array 
+  // directly. 
   logic [$clog2(S)-1:0] addr_0_r_0;
   logic [$clog2(S)-1:0] addr_0_r_1;
   logic [$clog2(S)-1:0] addr_0_r_2;
@@ -273,8 +264,8 @@ module tbu (
     .dout_13(dout_1_13),
     .dout_14(dout_1_14),
     .dout_15(dout_1_15),
-    .prev_state_0(prev_state_0),
 
+    .prev_state_0(prev_state_0),
     .desc_out(desc_out_1),
     .valid_out(val_out_r_1)
   );
@@ -332,25 +323,7 @@ module tbu (
     end
   endgenerate
 
-  //
-  //
   logic filo_buff_vit_desc [B-1:0];
-
-  logic vit_desc_0;
-  logic vit_desc_1;
-  logic vit_desc_2;
-  logic vit_desc_26;
-  logic vit_desc_27;
-  logic vit_desc_28;
-  logic vit_desc_29;
-  assign vit_desc_0 = filo_buff_vit_desc[0];
-  assign vit_desc_1 = filo_buff_vit_desc[1];
-  assign vit_desc_2 = filo_buff_vit_desc[2];
-
-  assign vit_desc_26 = filo_buff_vit_desc[26];
-  assign vit_desc_27 = filo_buff_vit_desc[27];
-  assign vit_desc_28 = filo_buff_vit_desc[28];
-  assign vit_desc_29 = filo_buff_vit_desc[29];
 
   logic [$clog2(B)-1:0] filo_ind_r;
   logic [$clog2(B)-1:0] filo_ind_w;
@@ -365,8 +338,6 @@ module tbu (
       valid_out <= 0;
       addr_w <= 0;
       wea <= 0;
-
-      // 
       filo_ind_r <= B - 1;
       filo_ind_w <= 0;
       seen_desc_out_1 <= 0;
@@ -374,15 +345,6 @@ module tbu (
       r_dir <= 0;
       w_start <= 0;
       r_start <= 0;
- 
-      // for (int i = 0; i < NUM_STATES / 4; i = i + 1) begin
-      //   addr_0_r[i] <= 0;
-      // end
-      // for (int i = 0; i < NUM_STATES / 4; i = i + 1) begin
-      //   addr_1_r[i] <= 0;
-      // end
-
-      
     end else begin
       if (valid_in) begin
         // Write to the dual brams
@@ -430,15 +392,6 @@ module tbu (
       end else begin
         valid_out <= 0;
       end
-      /* if (val_out_r_0) begin */
-      /*   valid_out <= 1; */
-      /*   vit_desc <= desc_out_0; */
-      /* end else if (val_out_r_1) begin */
-      /*   valid_out <= 1; */
-      /*   vit_desc <= desc_out_1; */
-      /* end else begin */
-      /*   valid_out <= 0; */
-      /* end */
     end
   end
 endmodule
@@ -555,8 +508,6 @@ module read_ptr #(
     row_ind <= 0;
   end
 
-
-
   always_ff @(posedge clk) begin
     if (sys_rst) begin
       col_ind <= IND_START;
@@ -567,9 +518,6 @@ module read_ptr #(
       traceback_ctr <= 0;
       state <= IDLE; // Need to be reading in IDLE, 
       holding_dout <= 0;
-      // for (int i = 0; i < 16; i = i + 1) begin
-      //   addr[i] <= 0;
-      // end
       
     end else if (valid_in) begin
       holding_dout <= 0;
@@ -586,13 +534,10 @@ module read_ptr #(
             for (int i = 0; i < 16; i = i + 1) begin
               addr[i] <= (col_ind + 1) % S;
             end
-            // addr[0] <= (col_ind + 1) % S; // Reading ahead so that prev val and decs are available on the next run;
           end else begin
             for (int i = 0; i < 16; i = i + 1) begin
               addr[i] <= col_ind;
             end
-            // addr[0] <= col_ind;
-
           end
         end
         // For the others going to read the output from the preceding read -> then execute another read and move row
@@ -607,19 +552,6 @@ module read_ptr #(
             traceback_ctr <= traceback_ctr + 1;
           end
           col_ind <= (col_ind + 1) % S;
-          // TODO: maybe draw this out into some comb block
-          // row_ind <= (holding_dout) ? dout_store[5:0] : (dout[row_ind>>2][7*row_ind[1:0] :+ 7])[5:0]; 
-          // if (holding_dout) begin
-          //   row_ind <= dout_store[5:0];
-          // end else begin
-          //   case (row_ind[1:0])
-          //     0: row_ind <= (dout[row_ind>>2][6:0])[5:0];
-          //     1: row_ind <= (dout[row_ind>>2][13:7])[5:0];
-          //     2: row_ind <= (dout[row_ind>>2][20:14])[5:0];
-          //     3: row_ind <= (dout[row_ind>>2][27:21])[5:0];
-          //   endcase
-          // end
-          /* addr[row_ind>>2] <= (col_ind + 1) % S; */
         end
         READ: begin
           valid_out <= 1;
@@ -630,7 +562,6 @@ module read_ptr #(
             readback_ctr <= readback_ctr + 1;
           end
           col_ind <= (col_ind + 1) % S;
-          /* addr[row_ind>>2] <= (col_ind + 1) % S; */
         end
       endcase
 
