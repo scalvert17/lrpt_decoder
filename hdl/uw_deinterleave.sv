@@ -9,6 +9,7 @@
 * 
 * Expects valid_in to be high for BITS_PER_FRAME * NUM_FRAMES cycles.  
 * After these cycles valid_in must be asserted low until uw_deinterleave outputs ready_rx high
+* Rotation output is 0 for 0 degree phase shift, 1 for 90, 2 for 180, and 3 for 270
 */
 module uw_deinterleave #(
   parameter BITS_PER_FRAME = 80, // Hard decision
@@ -24,7 +25,7 @@ module uw_deinterleave #(
   output logic valid_out, 
   output logic [$clog2(BITS_PER_FRAME)-1:0] bit_offset, // Offset of the max correlation
   output logic [$clog2(MAX_CORR_VAL)-1:0] max_offset_weight, // Max correlation value
-  output logic [3:0] rotation // Rotation of the max correlation
+  output logic [1:0] rotation // Rotation of the max correlation
 
 
 );
@@ -35,6 +36,13 @@ module uw_deinterleave #(
     READ = 1,
     COMPUTE = 2
   } uw_sync_int_state;
+
+  enum {
+    P_0 = 0,
+    P_90 = 1,
+    P_180 = 2,
+    P_270 = 3
+  } phase;
 
   logic [$clog2(NUM_FRAMES)-1:0] frame_ctr [3:0];
   logic [$clog2(BITS_PER_FRAME)-1:0] offset_ctr [3:0];
@@ -111,23 +119,23 @@ module uw_deinterleave #(
             offset_weight_max_store[0] > offset_weight_max_store[2] &&
             offset_weight_max_store[0] > offset_weight_max_store[3] ) begin
           bit_offset <= max_offset_ind_store[0];
-          rotation <= 0;
+          rotation <= P_0;
           max_offset_weight <= offset_weight_max_store[0];
         end else if (offset_weight_max_store[1] > offset_weight_max_store[0] &&
             offset_weight_max_store[1] > offset_weight_max_store[2] &&
             offset_weight_max_store[1] > offset_weight_max_store[3] ) begin
           bit_offset <= max_offset_ind_store[1];
-          rotation <= 1;
+          rotation <= P_90;
           max_offset_weight <= offset_weight_max_store[1];
         end else if (offset_weight_max_store[2] > offset_weight_max_store[1] &&
             offset_weight_max_store[2] > offset_weight_max_store[3] &&
             offset_weight_max_store[2] > offset_weight_max_store[0] ) begin
           bit_offset <= max_offset_ind_store[2];
-          rotation <= 2;
+          rotation <= P_180;
           max_offset_weight <= offset_weight_max_store[2];
         end else begin
           bit_offset <= max_offset_ind_store[3];
-          rotation <= 3;
+          rotation <= P_270;
           max_offset_weight <= offset_weight_max_store[3];
         end
       end

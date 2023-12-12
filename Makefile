@@ -46,6 +46,12 @@ tbu:
 		hdl/xilinx_true_dual_port_read_first_2_clock_ram.v
 	vvp vcd/tbu.out
 
+.PHONY: uw_sync_rot
+uw_sync_rot:
+	iverilog -g2012 -o vcd/uw_sync_rot.out sim/uw_sync_rot_tb.sv hdl/uw_sync_rot.sv \
+		hdl/xilinx_true_dual_port_read_first_2_clock_ram.v hdl/uw_deinterleave.sv 
+	vvp vcd/uw_sync_rot.out
+
 # .PHONY: uw_sync_deint
 # uw_sync_deint:
 #     iverilog -g2012 -o vcd/uw_sync.out sim/uw_sync_interleave_tb.sv hdl/uw_deinterleave.sv
