@@ -24,6 +24,10 @@ module first_stage_decode # (
   output valid_out
   );
 
+  //! Pipeline: 
+  // Inp -> UW_sync + derotator -> Conv_deinterleaver -> Diff decode -> Viterbi -> CADU sync
+
+
   localparam INTERLEAVE_SYNC_SOFT = 32 * 80; // 32 frames of 80 bytes of soft I/Q 
 
   logic [$clog2(INTERLEAVE_SYNC_SOFT)-1:0] interleave_offset;

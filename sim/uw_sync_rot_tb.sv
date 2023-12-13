@@ -14,6 +14,7 @@ module uw_sync_rot_tb();
   logic valid_out;
   logic [7:0] soft_out_0;
   logic [7:0] soft_out_1;
+  logic new_frame;
 
  uw_sync_rot sync (
    .clk(clk),
@@ -24,7 +25,8 @@ module uw_sync_rot_tb();
    .ready_tx(ready_tx),
    .valid_out(valid_out),
    .soft_out_0(soft_out_0),
-   .soft_out_1(soft_out_1)
+   .soft_out_1(soft_out_1),
+   .new_frameset(new_frame)
 );
 
   logic [8*BYTES_PER_FRAME*NUM_FRAMES-1:0] frames;
@@ -108,9 +110,15 @@ module uw_sync_rot_tb();
         counter = 0;
         #10;
         for (int i = 0; i < BYTES_PER_FRAME * NUM_FRAMES - offset; i = i + 2) begin
-          ready_tx = 0;
-          #10;
+          bit t = $random;
+          while (!t) begin
+            ready_tx = 0;
+            t = $random;
+            #10;
+          end
+
           ready_tx = 1;
+          #10;
           while (!valid_out) begin
             #10;
           end

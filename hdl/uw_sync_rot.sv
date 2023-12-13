@@ -23,7 +23,9 @@ module uw_sync_rot #(
   output logic ready_in,
   output logic valid_out,
   output logic signed [INPUT_SIZE-1:0] soft_out_0,
-  output logic signed [INPUT_SIZE-1:0] soft_out_1
+  output logic signed [INPUT_SIZE-1:0] soft_out_1,
+  output logic new_frameset,
+  output logic last_data
 );
 
   parameter BITS_PER_FRAME = 80; // Hard decision
@@ -109,7 +111,7 @@ task apply_rotation(input logic signed [7:0] pair_1, input logic signed [7:0] pa
   logic signed [7:0] pair_2_store;
   logic first_inp_read;
   logic [1:0] final_count;
-  logic last_delay;
+  logic first_out;
 
   xilinx_true_dual_port_read_first_2_clock_ram #(
     .RAM_WIDTH(8),                       // Specify RAM data width
@@ -140,10 +142,15 @@ task apply_rotation(input logic signed [7:0] pair_1, input logic signed [7:0] pa
       state <= IDLE;
       valid_in_sync <= 0;
       wea <= 0;
+      last_data <= 0;
+      valid_out <= 0;
     end else begin
       unique case (state)
         IDLE: begin
           valid_in_sync <= 0;
+          first_out <= 1;
+          new_frameset <= 0;
+          last_data <= 0;
           final_count <= 0;
           valid_out <= 0;
           wea <= 0;
@@ -189,7 +196,6 @@ task apply_rotation(input logic signed [7:0] pair_1, input logic signed [7:0] pa
           end
         end
         OUT_READ1: begin
-          // TODO: Start reading if READY_TX
           if (ready_tx) begin
             addr <= addr + 1;
             state <= OUT_READ2;
@@ -249,6 +255,12 @@ task apply_rotation(input logic signed [7:0] pair_1, input logic signed [7:0] pa
               pair_1_store <= dout;
             end else begin
               valid_out <= 1;
+              if (first_out) begin
+                first_out <= 0;
+                new_frameset <= 1;
+              end else begin
+                new_frameset <= 0;
+              end
               apply_rotation(pair_1_store, dout, rot, soft_out_0, soft_out_1);
             end
           end
@@ -262,6 +274,7 @@ task apply_rotation(input logic signed [7:0] pair_1, input logic signed [7:0] pa
           end else begin
             valid_out <= 1;
             state <= IDLE;
+            last_data <= 1;
             apply_rotation(pair_1_store, (final_count == 1) ? dout : pair_2_store, rot, soft_out_0,
               soft_out_1);
           end
