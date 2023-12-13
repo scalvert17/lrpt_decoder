@@ -1,3 +1,5 @@
+// Modified from: Andrew Weinfeld's MiG on piazza
+// and https://github.com/dbdexter-dev/meteor_decode/blob/master/deinterleave/deinterleave.c
 `timescale 1ns / 1ps
 `default_nettype none
 
