@@ -18,6 +18,7 @@ module tbu (
   localparam S = 120; // Number of trellis stages to store
   localparam X_MIN = 30; // Min number of stages to traceback st survivor path merge 
   localparam B = 30; // Read ptr traces back X_min stages and reads out B values 
+  //
 
 
   logic [$clog2(S)-1:0] addr_0_r [15:0];
