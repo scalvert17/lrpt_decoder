@@ -69,6 +69,7 @@ async def vit_desc_exp(dut, inp_size, inputs):
     ind = 0
     while True:
         if (dut.valid_out_vit.value == 1):
+            print("ind: ", ind)
             assert dut.vit_desc == inputs[ind], f"Expected vit_out: {inputs[ind]} instead got:  \
                     {dut.vit_desc} on timestep: {ind}"
             ind += 1

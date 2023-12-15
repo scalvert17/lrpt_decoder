@@ -9,6 +9,7 @@ module tbu (
   //! Store as {desc, prev_state}. The top 8 bits should only be padding 
   input wire valid_in, // Should be high at most once for any two consecutive cycles 
   output logic vit_desc,
+  output logic [5:0] last_state,
   output logic valid_out
 );
 
@@ -176,6 +177,8 @@ module tbu (
 
 
 
+  logic [5:0] last_state_0;
+  logic [5:0] last_state_1;
 
   read_ptr #(
     .IND_START(60)
@@ -220,6 +223,7 @@ module tbu (
     .dout_15(dout_0_15),
     .desc_out(desc_out_0),
     .prev_state_0(prev_state_0),
+    .last_state(last_state_0),
     .valid_out(val_out_r_0)
   );
 
@@ -267,7 +271,8 @@ module tbu (
 
     .prev_state_0(prev_state_0),
     .desc_out(desc_out_1),
-    .valid_out(val_out_r_1)
+    .valid_out(val_out_r_1),
+    .last_state(last_state_1)
   );
   
 
@@ -324,6 +329,7 @@ module tbu (
   endgenerate
 
   logic filo_buff_vit_desc [B-1:0];
+  logic [5:0] filo_buff_last_state [B-1:0];
 
   logic [$clog2(B)-1:0] filo_ind_r;
   logic [$clog2(B)-1:0] filo_ind_w;
@@ -361,12 +367,14 @@ module tbu (
       if (val_out_r_0 || val_out_r_1) begin
         if (seen_desc_out_1) begin
           vit_desc <= filo_buff_vit_desc[filo_ind_r];
+          last_state <= filo_buff_last_state[filo_ind_r];
           valid_out <= 1;
         end else begin
           valid_out <= 0;
         end
 
         filo_buff_vit_desc[filo_ind_w] <= (val_out_r_0) ? desc_out_0 : desc_out_1;
+        filo_buff_last_state[filo_ind_w] <= (val_out_r_0) ? desc_out_0 : desc_out_1;
         if (filo_ind_w == B - 1 && w_start) begin
           w_start <= 0;
           w_dir <= 0;
@@ -443,8 +451,10 @@ module read_ptr #(
   output logic [$clog2(S)-1:0] addr_12,
   output logic [$clog2(S)-1:0] addr_13,
   output logic [$clog2(S)-1:0] addr_14,
-  output logic [$clog2(S)-1:0] addr_15
+  output logic [$clog2(S)-1:0] addr_15,
+  output logic [5:0] last_state
 );
+  assign last_state = row_ind;
 
   logic [35:0] dout [15:0];
   assign dout[0] = dout_0;

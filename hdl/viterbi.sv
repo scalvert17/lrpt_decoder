@@ -22,7 +22,8 @@ module viterbi (
   output logic ready_in,
   output logic normalization,
   output logic [19:0] sm_0_debug,
-  output logic  valid_out_vit
+  output logic  valid_out_vit,
+  output logic [5:0] last_state
 );
   /********************/
   // TBU test and debug
@@ -141,6 +142,7 @@ module viterbi (
     end
   end
 
+
 tbu tbu_inst (
   .clk(clk),
   .sys_rst(sys_rst),
@@ -148,6 +150,7 @@ tbu tbu_inst (
   .desc(desc),
   .valid_in(valid_out[0]),
   .vit_desc(vit_desc),
+  .last_state(last_state),
   .valid_out(valid_out_vit)
 );
 
