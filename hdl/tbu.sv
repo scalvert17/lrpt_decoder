@@ -274,8 +274,20 @@ module tbu (
     .valid_out(val_out_r_1),
     .last_state(last_state_1)
   );
-  
 
+
+  logic [$clog2(S)-1:0] addr_w_p;
+  logic [35:0] din_w_p [15:0];
+  logic wea_p;
+
+  always_ff @(posedge clk) begin
+    for (int i = 0; i < 16; i = i + 1) begin
+      din_w_p[i] <= din_w[i];
+    end
+    addr_w_p <= addr_w;
+    wea_p <= wea;
+  end
+  
   generate
     genvar i;
     for (i = 0; i < NUM_STATES / 4; i = i + 1) begin : rows_0
@@ -285,13 +297,13 @@ module tbu (
         .RAM_PERFORMANCE("HIGH_PERFORMANCE") // Select "HIGH_PERFORMANCE" or "LOW_LATENCY"
       ) store_row (
         .addra(addr_0_r[i]),   // Port A address bus, width determined from RAM_DEPTH
-        .addrb(addr_w),   // Port B address bus, width determined from RAM_DEPTH
+        .addrb(addr_w_p),   // Port B address bus, width determined from RAM_DEPTH
         .dina(1'b0),     // Port A RAM input data, width determined from RAM_WIDTH
-        .dinb(din_w[i]),     // Port B RAM input data, width determined from RAM_WIDTH
+        .dinb(din_w_p[i]),     // Port B RAM input data, width determined from RAM_WIDTH
         .clka(clk),     // Port A clock
         .clkb(clk),     // Port B clock
         .wea(1'b0),       // Port A write enable
-        .web(wea),       // Port B write enable
+        .web(wea_p),       // Port B write enable
         .ena(1'b1),       // Port A RAM Enable, for additional power savings, disable port when not in use
         .enb(1'b1),       // Port B RAM Enable, for additional power savings, disable port when not in use
         .rsta(sys_rst),     // Port A output reset (does not affect memory contents)
@@ -309,13 +321,13 @@ module tbu (
         .RAM_PERFORMANCE("HIGH_PERFORMANCE") // Select "HIGH_PERFORMANCE" or "LOW_LATENCY"
       ) store_row (
         .addra(addr_1_r[i]),   // Port A address bus, width determined from RAM_DEPTH
-        .addrb(addr_w),   // Port B address bus, width determined from RAM_DEPTH
+        .addrb(addr_w_p),   // Port B address bus, width determined from RAM_DEPTH
         .dina(1'b0),     // Port A RAM input data, width determined from RAM_WIDTH
-        .dinb(din_w[i]),     // Port B RAM input data, width determined from RAM_WIDTH
+        .dinb(din_w_p[i]),     // Port B RAM input data, width determined from RAM_WIDTH
         .clka(clk),     // Port A clock
         .clkb(clk),     // Port B clock
         .wea(1'b0),       // Port A write enable
-        .web(wea),       // Port B write enable
+        .web(wea_p),       // Port B write enable
         .ena(1'b1),       // Port A RAM Enable, for additional power savings, disable port when not in use
         .enb(1'b1),       // Port B RAM Enable, for additional power savings, disable port when not in use
         .rsta(sys_rst),     // Port A output reset (does not affect memory contents)
